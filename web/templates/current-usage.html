@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+    <script src="/js/Chart.js" charset="utf-8"></script> 
+<head>
+<title>Smart Meter Insight</title>
+</head>
+<body>
+
+    <h1>Smart Meter Insight</h1>
+    <p></p>
+    <div id="date">loading...</div>
+    <div id="usage">loading...</div>
+    <div id="direction">loading...</div>
+
+    <p></p>
+    
+    <table>
+        <tr>
+            <th>Device</th>
+            <th>Watts</th>
+            <th>Can we run it for free?</th>
+        </tr>
+        <tr>
+            <td>Washing Machine</td>
+            <td><div id="dt-washing_machine-w">2000</div></td>
+            <td><div id="dt-washing_machine-crf">loading...</div></td>
+        </tr>
+        <tr>
+            <td>Dishwasher</td>
+            <td><div id="dt-dishwasher-w">1500</div></td>
+            <td><div id="dt-dishwasher-crf">loading...</div></td>
+        </tr>
+        <tr>
+            <td>Tv</td>
+            <td><div id="dt-tv-w">300</div></td>
+            <td><div id="dt-tv-crf">loading...</div></td>
+        </tr>
+    </table>
+    
+    <p>History</p>
+    
+    <p><select id="historical-date-resolution-select" onchange="refreshHistorical()">
+        <option value="60">15 seconds</option>
+        <option value="60">1 minute</option>
+        <option value="900">15 minutes</option>
+        <option value="1800">30 minutes</option>
+        <option value="3600">1 hour</option>
+        <option selected="selected" value="21600">6 hours</option>
+        <option value="43200">12 hours</option>
+        <option value="86400">1 day</option>
+        <option value="259200">3 days</option>
+        <option value="999999999">inf</option>
+
+    </select></p>
+    
+    <canvas id="historicalChart" style="width:100%;max-width:900px"></canvas>
+        
+    <button id="storage-button" type="button" onClick="storeHistorical()">Store Data</button>
+    <button id="load-button" type="button" onClick="loadHistorical()">Load Data</button>
+    <div id="stored-historical"></div>
+    <div id="load-historical"></div>
+
+
+    
+    
+    <link rel= "stylesheet" type= "text/css" href= "/css/simple-v1.css">
+    
+    <script>
+        
+    
+        var serverAddress = "{{ serverAddress }}";
+        refreshCurrent()
+        refreshHistorical()
+    
+    	setInterval(refreshCurrent,5000)
+        setInterval(refreshHistorical,15000)
+
+    	async function refreshCurrent(){
+    	
+      		let currentUsagePath = "http://" + serverAddress + "/api/current"
+      		let historyPath = "http://" + serverAddress + "/api/history"
+
+      		console.log("Request on: "+currentUsagePath)
+      		
+           
+            await fetch(currentUsagePath, {
+              method: "GET",
+            })
+            .then(response => {
+            	return response.json()
+            })
+            .then(json => {
+                let rawJson = JSON.stringify(json)
+            	//let rawJson = '{"date":"2024-08-16T18:31:50.656397","timestamp":1723829510.656429,"usageWatts":-1800}'
+            	let parsedJson = JSON.parse(rawJson)
+            	
+            	let date = parsedJson.date
+            	let usageWatts = parsedJson.usageWatts
+            	let direction = "importing"
+            	
+            	if(usageWatts<0)
+                    direction = "exporting"
+                    
+                if(usageWatts<Number(document.getElementById("dt-washing_machine-w").textContent)*-1)
+                    document.getElementById("dt-washing_machine-crf").textContent = "yes"
+                else
+                    document.getElementById("dt-washing_machine-crf").textContent = "no"
+                    
+                if(usageWatts<Number(document.getElementById("dt-dishwasher-w").textContent)*-1)
+                    document.getElementById("dt-dishwasher-crf").textContent = "yes"
+                else
+                    document.getElementById("dt-dishwasher-crf").textContent = "no"
+                
+                if(usageWatts<Number(document.getElementById("dt-tv-w").textContent)*-1)
+                    document.getElementById("dt-tv-crf").textContent = "yes"
+                else
+                    document.getElementById("dt-tv-crf").textContent = "no"
+                
+                             
+            	document.getElementById("date").textContent = "Last meter reading date was " + date
+            	document.getElementById("usage").textContent = "Our current usage is " + usageWatts + " watts"
+            	document.getElementById("direction").textContent = "We are currently " + direction + " electricity"
+            })
+           
+        }
+        
+        
+        
+        async function refreshHistorical(){
+            let resolution = document.getElementById("historical-date-resolution-select").value
+    	
+      		let historyPath = "http://" + serverAddress + "/api/history?res="+resolution
+
+      		console.log("Request on: "+historyPath)
+      	
+            await fetch(historyPath, {
+              method: "GET",
+            })
+            .then(response => {
+            	return response.json()
+            })
+            .then(json => {
+                let rawJson = JSON.stringify(json)
+            	let parsedJson = JSON.parse(rawJson)
+            	
+            	var data = {
+                }
+                
+                var dataZero = {
+                }
+            	
+            	
+            	for (let i = 0; i < parsedJson.readings.length; i++) {
+                    data[parsedJson.readings[i].date]=parsedJson.readings[i].usageWatts
+                    dataZero[parsedJson.readings[i].date]=0
+            	}
+   
+            	//document.getElementById("history").textContent = Object.values(data)
+                   
+                new Chart("historicalChart", {
+                   type: 'line',
+                   data: {
+                        labels: Object.keys(data),
+                        datasets:[
+                            {
+                                label: 'Historical usage watts',
+                                fill: false,
+                                lineTension: 0,
+                                backgroundColor: "rgba(75,192,192,0.4)",
+                                borderColor: "rgba(75,192,192,1)",
+                                borderCapStyle: 'butt',
+                                borderDash: [],
+                                borderDashOffset: 0.0,
+                                borderJoinStyle: 'miter',
+                               
+                                data: Object.values(data)
+                            }, 
+                            {
+                                label: 'Zero Line',
+                                fill: false,
+                                lineTension: 0,
+                                backgroundColor: "rgba(75,192,192,0.4)",
+                                borderColor: "rgba(255,0,0,1)",
+                                borderCapStyle: 'butt',
+                                borderDash: [],
+                                borderDashOffset: 0.0,
+                                borderJoinStyle: 'miter',
+                               
+                                data: Object.values(dataZero)
+                            }
+                        ]
+                    }
+                });
+              
+                })
+            
+
+            
+        }
+        
+        async function storeHistorical(){
+    	
+      		let currentUsagePath = "http://" + serverAddress + "/api/store-history"
+
+      		console.log("Request on: "+currentUsagePath)
+      		
+           
+            await fetch(currentUsagePath, {
+              method: "GET",
+            })
+            .then(response => {
+            	return response.json()
+            })
+            .then(json => {
+                let rawJson = JSON.stringify(json)
+            	let parsedJson = JSON.parse(rawJson)
+            	
+            	document.getElementById("stored-historical").textContent = "We are have stored " + rawJson + " "
+            })
+           
+        }
+        
+        async function loadHistorical(){
+    	
+      		let currentUsagePath = "http://" + serverAddress + "/api/load-history"
+
+      		console.log("Request on: "+currentUsagePath)
+      		
+           
+            await fetch(currentUsagePath, {
+              method: "GET",
+            })
+            .then(response => {
+            	return response.json()
+            })
+            .then(json => {
+                let rawJson = JSON.stringify(json)
+            	let parsedJson = JSON.parse(rawJson)
+            	
+            	document.getElementById("load-historical").textContent = "We are have loaded " + rawJson + " "
+            })
+           
+        }
+    </script>
+
+</body>
+</html>
+
