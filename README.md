@@ -30,8 +30,13 @@ http://<ip of your pi>:5000/current-usage
 # Rest interfaces
 
 SMER exposes a number of rest interfaces for communicating with the web page or for other use
-* GET /api/current: returns the last meter reading read from the p1 port
-* GET /api/historical?res={resolution}: returns the last n meter readings where n is the readings that have been stored after _now_ - _resolution (in seconds)_
-* GET /api/store-history: dumps the readings currently in memory to a history-data.json file one folder up from where the application is run
-* GET /api/load-history: loads the readings from a history-data.json file located one folder up from where the application is run
+* **GET /api/current**: returns the last meter reading read from the p1 port
+* **GET /api/historical?res={resolution}**: returns the last n meter readings where n is the readings that have been stored after _now_ - _resolution (in seconds)_
+* **GET /api/store-history**: dumps the readings currently in memory to a history-data.json file one folder up from where the application is run
+* **GET /api/load-history**: loads the readings from a history-data.json file located one folder up from where the application is run
+
+# Included resources
+SMER includes the following resources that are being served locally by Flask, none of these files have been modified
+* Chart.js: https://www.chartjs.org/
+* SimpleCSS: https://simplecss.org/
 
