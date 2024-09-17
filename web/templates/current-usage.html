@@ -40,12 +40,13 @@
     <p>History</p>
     
     <p><select id="historical-date-resolution-select" onchange="refreshHistorical()">
-        <option value="60">15 seconds</option>
         <option value="60">1 minute</option>
+        <option value="300">5 minutes</option>
         <option value="900">15 minutes</option>
         <option value="1800">30 minutes</option>
         <option value="3600">1 hour</option>
-        <option selected="selected" value="21600">6 hours</option>
+        <option selected="selected" value="10800">3 hours</option>
+        <option value="21600">6 hours</option>
         <option value="43200">12 hours</option>
         <option value="86400">1 day</option>
         <option value="259200">3 days</option>
@@ -66,7 +67,22 @@
     <link rel= "stylesheet" type= "text/css" href= "/css/simple-v1.css">
     
     <script>
-        
+        let emptyData = {}
+                
+        let chart = new Chart('historicalChart', {
+                    type: 'line',
+                    options: {
+                        elements: {
+                          point: {
+                            pointStyle: 'circle',  
+                            radius: 1,
+                            hitRadius: 4
+                          }
+                        }
+                      }
+                    
+            });
+
     
         var serverAddress = "{{ serverAddress }}";
         refreshCurrent()
@@ -79,6 +95,7 @@
     	
       		let currentUsagePath = "http://" + serverAddress + "/api/current"
       		let historyPath = "http://" + serverAddress + "/api/history"
+      		
 
       		console.log("Request on: "+currentUsagePath)
       		
@@ -156,10 +173,11 @@
             	}
    
             	//document.getElementById("history").textContent = Object.values(data)
-                   
-                new Chart("historicalChart", {
-                   type: 'line',
-                   data: {
+                
+                
+                chart.labels = Object.keys(data)
+                chart.data =  
+                    {
                         labels: Object.keys(data),
                         datasets:[
                             {
@@ -172,7 +190,7 @@
                                 borderDash: [],
                                 borderDashOffset: 0.0,
                                 borderJoinStyle: 'miter',
-                               
+                                
                                 data: Object.values(data)
                             }, 
                             {
@@ -185,17 +203,17 @@
                                 borderDash: [],
                                 borderDashOffset: 0.0,
                                 borderJoinStyle: 'miter',
-                               
+                                
                                 data: Object.values(dataZero)
                             }
                         ]
-                    }
-                });
+                    };
+                
+                chart.update()
               
-                })
             
-
-            
+            })
+           
         }
         
         async function storeHistorical(){
@@ -240,6 +258,22 @@
             	document.getElementById("load-historical").textContent = "We are have loaded " + rawJson + " "
             })
            
+        }
+        
+        function addData(chart, label, newData) {
+            chart.data.labels.push(label);
+            chart.data.datasets.forEach((dataset) => {
+                dataset.data.push(newData);
+            });
+            chart.update();
+        }
+
+        function removeData(chart) {
+            chart.data.labels.pop();
+            chart.data.datasets.forEach((dataset) => {
+                dataset.data.pop();
+            });
+            chart.update();
         }
     </script>
 

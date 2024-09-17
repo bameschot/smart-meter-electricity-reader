@@ -80,7 +80,7 @@ class P1MeterReader:
                         now = datetime.datetime.now()
                         
                         newReading = MeterReading(
-                            now.isoformat(),
+                            now.isoformat().split('.')[0],
                             calendar.timegm(now.timetuple()),
                             currentEnergyImportW+-currentEnergyExportW
                         )
